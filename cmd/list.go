@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 NAME HERE <EMAIL ADDRESS>
+Copyright © 2019 Platform9 Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,14 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+
+	"github.com/grafana-tools/sdk"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // listCmd represents the list command
@@ -26,20 +33,28 @@ var listCmd = &cobra.Command{
 	Long:  `List Grafana Dashboards`,
 	Run: func(cmd *cobra.Command, args []string) {
 		requireAuthParams()
-		// Todo: actually list the dashboards
+		var (
+			boardLinks []sdk.FoundBoard
+			err        error
+		)
+
+		c := sdk.NewClient(viper.GetString("url"), viper.GetString("apikey"), sdk.DefaultHTTPClient)
+		if boardLinks, err = c.SearchDashboards("", false); err != nil {
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("%s\n", err))
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"ID", "Title", "URI", "Type"})
+		for _, link := range boardLinks {
+			// convert the ID to string
+			id := strconv.FormatUint(uint64(link.ID), 10)
+			// append the line to the data table
+			table.Append([]string{id, link.Title, link.URI, link.Type})
+		}
+		table.Render()
 	},
 }
 
 func init() {
 	dashboardCmd.AddCommand(listCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
