@@ -16,34 +16,16 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
-// dashboardCmd represents the dashboard command
+// dashboard command does not do anything, but is needed for scoping of subcommands
 var dashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Perform operations on Grafana Dashboards",
-	Long: `Perform operations on Grafana Dashboards
-
-* List Dashboards`,
-// TODO: Download and Upload dashboards
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("dashboard called")
-	},
+	Long:  `Perform operations on Grafana Dashboards`,
 }
 
 func init() {
 	rootCmd.AddCommand(dashboardCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// dashboardCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// dashboardCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -42,7 +42,7 @@ You can upload dashboards to a specific org, preserving folder structure.`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -50,15 +50,17 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", `config file - default in order of precedence:
+- .grafana-sync.yaml
+- $HOME/.grafana-sync.yaml`)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grafana-sync.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// These flags will override the config file if specified
+	// `apiKey` command option for grafana API key
+	rootCmd.PersistentFlags().String("apikey", "", "A Grafana API Key")
+	viper.BindPFlag("apikey", rootCmd.PersistentFlags().Lookup("apikey"))
+	// `url` command option for grafana URL
+	rootCmd.PersistentFlags().String("url", "", "The URL of a Grafana instance")
+	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("url"))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -74,15 +76,38 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".grafana-sync" (without extension).
+		viper.SetConfigName(".grafana-sync.yaml")
+		// First look in local directory
+		viper.AddConfigPath(".")
+		// Also look in HOME directory
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".grafana-sync")
 	}
 
+	// Environment Variables expect to be the uppercase form of the flag name
+	// env vars must be in the form GS_VARNAME
+	viper.SetEnvPrefix("GS")
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	err := viper.ReadInConfig()
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			fmt.Println("Did not find config file. Continuing.")
+		}
+	}
+}
+
+// Ensures that the global authentication parameters are specified
+// Will exit if they are not
+func requireAuthParams() {
+	if !viper.IsSet("url") {
+		fmt.Fprintln(os.Stderr, "Error: Grafana URL not specified.")
+		rootCmd.Println(rootCmd.UsageString())
+		os.Exit(1)
+	}
+	if !viper.IsSet("apikey") {
+		fmt.Fprintln(os.Stderr, "Error: Grafana APIKey not specified.")
+		rootCmd.Println(rootCmd.UsageString())
+		os.Exit(1)
 	}
 }

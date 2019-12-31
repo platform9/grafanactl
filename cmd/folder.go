@@ -16,34 +16,16 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
-// folderCmd represents the folder command
+// folder command does not do anything, but is needed for scoping of subcommands
 var folderCmd = &cobra.Command{
 	Use:   "folder",
 	Short: "Perform operations on Grafana Folders",
-	Long: `Perform operations on Grafana Folders
-
-* List folders`,
-// TODO: Download and Upload folders
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("folder called")
-	},
+	Long:  "Perform operations on Grafana Folders",
 }
 
 func init() {
 	rootCmd.AddCommand(folderCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// folderCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// folderCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
