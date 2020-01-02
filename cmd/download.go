@@ -28,13 +28,8 @@ import (
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
 	Use:   "download",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Download dashboards from a grafana instance",
+	Long:  `Download dashboards from a grafana instance`,
 	// allow specification of dashboard ID as a positional argument
 	// except do not error out if `--all` is set and no positional arg is specified
 	Run: func(cmd *cobra.Command, args []string) {
