@@ -23,7 +23,6 @@ import (
 	"github.com/grafana-tools/sdk"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // listCmd represents the list command
@@ -35,13 +34,9 @@ var listCmd = &cobra.Command{
 		requireAuthParams()
 		var (
 			boardLinks []sdk.FoundBoard
-			err        error
 		)
 
-		c := sdk.NewClient(viper.GetString("url"), viper.GetString("apikey"), sdk.DefaultHTTPClient)
-		if boardLinks, err = c.SearchDashboards("", false); err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("%s\n", err))
-		}
+		boardLinks = listAllDashboards()
 
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Title", "URI", "Type"})
@@ -57,4 +52,17 @@ var listCmd = &cobra.Command{
 
 func init() {
 	dashboardCmd.AddCommand(listCmd)
+}
+
+func listAllDashboards() []sdk.FoundBoard {
+	var (
+		boardLinks []sdk.FoundBoard
+		err        error
+	)
+	c := getGrafanaClient()
+	if boardLinks, err = c.SearchDashboards("", false); err != nil {
+		fmt.Fprintf(os.Stderr, fmt.Sprintf("%s\n", err))
+		os.Exit(1)
+	}
+	return boardLinks
 }

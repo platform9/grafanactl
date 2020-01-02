@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 
+	"github.com/grafana-tools/sdk"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
@@ -110,4 +111,9 @@ func requireAuthParams() {
 		rootCmd.Println(rootCmd.UsageString())
 		os.Exit(1)
 	}
+}
+
+// Initializes a grafana client for the user
+func getGrafanaClient() *sdk.Client {
+	return sdk.NewClient(viper.GetString("url"), viper.GetString("apikey"), sdk.DefaultHTTPClient)
 }
