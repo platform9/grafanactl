@@ -18,6 +18,12 @@ grafana-sync dashboard list
 # Downloading dashboards
 grafana-sync dashboard download --all
 grafana-sync dashboard download --all -t dashboards
+
+# Uploading dashboards
+grafana-sync dashboard upload -f dashboards
+
+# List folders
+grafana-sync folder list
 ```
 
 ## Configuration
