@@ -25,8 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// listCmd represents the list command
-var listCmd = &cobra.Command{
+var listDashboardCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List Grafana Dashboards",
 	Long:  `List Grafana Dashboards`,
@@ -51,7 +50,7 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	dashboardCmd.AddCommand(listCmd)
+	dashboardCmd.AddCommand(listDashboardCmd)
 }
 
 func listAllDashboards() []sdk.FoundBoard {
