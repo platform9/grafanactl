@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/grafana-tools/sdk"
@@ -27,7 +28,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
 	Use:   "upload",
 	Short: "Upload Grafana Dashboards",
@@ -38,7 +38,7 @@ Only files with a '.json' extension will be uploaded.`,
 		requireAuthParams()
 
 		// Check the requested file/dir exists
-		targetFiles, err := os.Stat(viper.GetString("files"))
+		targetFiles, err := os.Lstat(viper.GetString("files"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", err))
 			os.Exit(1)
@@ -47,11 +47,13 @@ Only files with a '.json' extension will be uploaded.`,
 			files    []os.FileInfo
 			rawBoard []byte
 			readErr  error
+			inDir    string
 		)
 		// Check if file is a Dir or a File
 		switch mode := targetFiles.Mode(); {
 		case mode.IsDir():
 			files, readErr = ioutil.ReadDir(targetFiles.Name())
+			inDir = targetFiles.Name()
 			if readErr != nil {
 				fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", readErr))
 				os.Exit(1)
@@ -63,28 +65,41 @@ Only files with a '.json' extension will be uploaded.`,
 		c := getGrafanaClient()
 
 		for _, file := range files {
-			fmt.Printf("uploading %s\n", file.Name())
-			// check the file to see if it's a valid dashboard
-			if strings.HasSuffix(file.Name(), ".json") {
-				if rawBoard, err = ioutil.ReadFile(file.Name()); err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to read file %s: %s\n", file.Name(), err))
-					continue
-				}
-				var board sdk.Board
-				if err = json.Unmarshal(rawBoard, &board); err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("Skipping file %s for error: %s\n", file.Name(), err))
-					continue
-				}
-				c.DeleteDashboard(board.UpdateSlug())
-				msg, err := c.SetDashboard(board, false)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload dashboard %s:\n%s\n", file.Name(), err))
-					continue
-				} else {
-					if msg.URL != nil && msg.Slug != nil {
-						link := fmt.Sprintf("%s%s", viper.GetString("url"), (*msg.URL))
-						fmt.Printf("Successfully Uploaded dashboard '%s'\nurl: %s\n", (*msg.Slug), link)
-					}
+			// Skip directories
+			if file.Mode().IsDir() {
+				fmt.Printf("Skipping '%s' (Is a Directory)\n", file.Name())
+				continue
+			}
+
+			dashboardFile := file.Name()
+			// If using a directory, generate the relative path to the file
+			if len(inDir) > 0 {
+				dashboardFile = filepath.Join(inDir, file.Name())
+			}
+			fmt.Printf("uploading %s\n", dashboardFile)
+			if !strings.HasSuffix(dashboardFile, ".json") {
+				fmt.Printf("Skipping '%s' (Not a JSON file)\n", file.Name())
+				continue
+			}
+
+			if rawBoard, err = ioutil.ReadFile(dashboardFile); err != nil {
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to read file %s: %s\n", dashboardFile, err))
+				continue
+			}
+			var board sdk.Board
+			if err = json.Unmarshal(rawBoard, &board); err != nil {
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("Skipping file %s for error: %s\n", dashboardFile, err))
+				continue
+			}
+			c.DeleteDashboard(board.UpdateSlug())
+			msg, err := c.SetDashboard(board, false)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload dashboard %s:\n%s\n", dashboardFile, err))
+				continue
+			} else {
+				if msg.URL != nil && msg.Slug != nil {
+					link := fmt.Sprintf("%s%s", viper.GetString("url"), (*msg.URL))
+					fmt.Printf("Successfully Uploaded dashboard '%s'\nurl: %s\n", (*msg.Slug), link)
 				}
 			}
 		}
