@@ -13,7 +13,6 @@ Current Command List
 
 ```bash
 # Listing Dashboards
-grafana-sync dashboard list
 grafana-sync dashboard search
 
 # Downloading dashboards
@@ -24,7 +23,6 @@ grafana-sync dashboard download --all -t dashboards
 grafana-sync dashboard upload -f dashboards
 
 # List folders
-grafana-sync folder list
 grafana-sync folder search
 ```
 

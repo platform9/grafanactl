@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 
 	"github.com/grafana-tools/sdk"
@@ -44,18 +45,18 @@ var downloadCmd = &cobra.Command{
 			}
 		} else {
 			var (
-				boardlinks []sdk.FoundBoard
-				rawBoard   []byte
-				meta       sdk.BoardProperties
-				err        error
+				rawBoard []byte
+				meta     sdk.BoardProperties
+				err      error
 			)
 			// download all dashboards into a directory
-			boardlinks = listAllDashboards()
+			gc := getGrafanaClientInternal()
+			boards, err := gc.SearchDashboards(url.Values{})
 			c := getGrafanaClient()
-			for _, link := range boardlinks {
+			for _, link := range boards {
 				// Download the dashboard
-				if rawBoard, meta, err = c.GetRawDashboard(link.URI); err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error downloading: %s for %s\n", err, link.URI))
+				if rawBoard, meta, err = c.GetRawDashboard(link.Uri); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error downloading: %s for %s\n", err, link.Uri))
 					continue
 				}
 				// Write the dashboard to file in the target dir

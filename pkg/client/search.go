@@ -17,7 +17,6 @@ func (r *Client) Search(queryParams url.Values) ([]models.SearchHit, error) {
 		found []models.SearchHit
 		err   error
 	)
-	fmt.Printf("Querying %s\n", queryParams.Encode())
 	if raw, code, err = r.get("api/search", queryParams); err != nil {
 		return nil, err
 	}
