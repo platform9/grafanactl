@@ -30,7 +30,7 @@ var searchFolderCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		requireAuthParams()
 		c := getGrafanaClientInternal()
-		queryParams := getSearchParams(args)
+		queryParams := getSearchParams(cmd, args)
 		results, _ := c.SearchFolders(queryParams)
 		if len(results) == 0 {
 			fmt.Println("No results found.")

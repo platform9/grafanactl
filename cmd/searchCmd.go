@@ -39,7 +39,41 @@ func prepareTable(searchResults []models.SearchHit) *tablewriter.Table {
 	return table
 }
 
-func getSearchParams(args []string) url.Values {
+// merges two int slices, ensuring that no duplicate ints are in the resulting slice
+// May be combined with mergeStringSlices(..) if we can figure out how to handle multiple
+//   types without too much interface{} juggling
+func mergeIntSlices(slice1 []int, slice2 []int) []int {
+	for _, item2 := range slice2 {
+		for _, item1 := range slice1 {
+			if item1 == item2 {
+				// item2 exists already, go to next item2
+				break
+			}
+		}
+		// item2 doesn't exist, append to the slice
+		slice1 = append(slice1, item2)
+	}
+	return slice1
+}
+
+// merges two string slices, ensuring that no duplicate ints are in the resulting slice
+// May be combined with mergeIntSlices(..) if we can figure out how to handle multiple
+//   types without too much interface{} juggling
+func mergeStringSlices(slice1 []string, slice2 []string) []string {
+	for _, item2 := range slice2 {
+		for _, item1 := range slice1 {
+			if item1 == item2 {
+				// item2 exists already, go to next item2
+				break
+			}
+		}
+		// item2 doesn't exist, append to the slice
+		slice1 = append(slice1, item2)
+	}
+	return slice1
+}
+
+func getSearchParams(cmd *cobra.Command, args []string) url.Values {
 	params := url.Values{}
 
 	// query
@@ -53,25 +87,37 @@ func getSearchParams(args []string) url.Values {
 	}
 
 	// tags
-	tags := viper.GetStringSlice("tags")
+	// Note: viper.GetStringSlice() does not seem to properly bind the flag
+	// as a workaround, we will merge the lists ourselves
+	tagsViper := viper.GetStringSlice("tag")
+	tagsCobra, _ := cmd.Flags().GetStringSlice("tag")
+	tags := mergeStringSlices(tagsViper, tagsCobra)
 	if len(tags) > 0 {
 		for _, tag := range tags {
-			params.Add("tags", tag)
+			params.Add("tag", tag)
 		}
 	}
 
 	// dashboardIds
-	dashboardIds := viper.GetIntSlice("dashboardIds")
-	if len(dashboardIds) > 0 {
-		for _, id := range dashboardIds {
+	// Note: viper.GetIntSlice() does not seem to properly bind the flag
+	// as a workaround, we will merge the lists ourselves
+	dashboardsViper := viper.GetIntSlice("dashboard")
+	dashboardsCobra, _ := cmd.Flags().GetIntSlice("dashboard")
+	dashboards := mergeIntSlices(dashboardsViper, dashboardsCobra)
+	if len(dashboards) > 0 {
+		for _, id := range dashboards {
 			params.Add("dashboardIds", strconv.FormatInt(int64(id), 10))
 		}
 	}
 
 	// folderIds
-	folderIds := viper.GetIntSlice("folderIds")
-	if len(folderIds) > 0 {
-		for _, id := range folderIds {
+	// Note: viper.GetIntSlice() does not seem to properly bind the flag
+	// as a workaround, we will merge the lists ourselves
+	foldersViper := viper.GetIntSlice("folder")
+	foldersCobra, _ := cmd.Flags().GetIntSlice("folder")
+	folders := mergeIntSlices(foldersViper, foldersCobra)
+	if len(folders) > 0 {
+		for _, id := range folders {
 			params.Add("folderIds", strconv.FormatInt(int64(id), 10))
 		}
 	}
@@ -87,17 +133,9 @@ func getSearchParams(args []string) url.Values {
 
 func loadSearchFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("query", "q", "", "Search Query")
-	viper.BindPFlag("query", cmd.Flags().Lookup("query"))
-
 	cmd.Flags().StringSliceP("tag", "t", []string{}, "List of tags to search for.")
-	viper.BindPFlag("tags", cmd.Flags().Lookup("tag"))
-
-	cmd.Flags().IntSliceP("dashboard-id", "d", []int{}, "List of dashboard id's to search for")
-	viper.BindPFlag("dashboardIds", cmd.Flags().Lookup("dashboard-id"))
-
-	cmd.Flags().IntSliceP("folder-id", "f", []int{}, "List of folder id's to search in for dashboards")
-	viper.BindPFlag("folderIds", cmd.Flags().Lookup("folder-id"))
-
+	cmd.Flags().IntSliceP("dashboard", "d", []int{}, "List of dashboard id's to search for")
+	cmd.Flags().IntSliceP("folder", "f", []int{}, "List of folder id's to search in for dashboards")
 	cmd.Flags().Bool("starred", false, "Flag indicating if only starred Dashboards should be returned")
-	viper.BindPFlag("starred", cmd.Flags().Lookup("starred"))
+	viper.BindPFlags(cmd.Flags())
 }
