@@ -3,6 +3,7 @@ module github.com/platform9/grafana-sync
 go 1.13
 
 require (
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/go-macaron/session v0.0.0-20191101041208-c5d57a35f512 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gosimple/slug v1.9.0 // indirect

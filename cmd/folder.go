@@ -21,8 +21,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/grafana/grafana/pkg/models"
 	"github.com/spf13/cobra"
@@ -39,56 +37,24 @@ func init() {
 	rootCmd.AddCommand(folderCmd)
 }
 
-func mkdirFromFolder(folder models.Folder) error {
-	target := sanitizeDirName(folder.Title)
+// isDirectoryMatch inspects a target directory to see if it matches the current grafana folder
+func isDirectoryMatch(newFolder models.Folder, targetDirectory string) (bool, error) {
 	var (
-		signatureFile string
-		signatureRaw  []byte
-		exists        os.FileInfo
-		err           error
+		folderJSONPath string
+		folderJSONRaw  []byte
+		exists         os.FileInfo
+		targetFolder   models.Folder
+		err            error
 	)
-	signatureFile = filepath.Join(target, ".folder.json")
-	if signatureRaw, err = json.Marshal(folder); err != nil {
-		return fmt.Errorf("error marshal signature: %w", err)
+	folderJSONPath = filepath.Join(targetDirectory, ".folder.json")
+	if exists, _ = os.Lstat(folderJSONPath); exists == nil {
+		return false, fmt.Errorf(".folder.json doesn't exist in target directory %s", targetDirectory)
 	}
-	exists, _ = os.Lstat(target)
-	if exists == nil {
-		// Attempt to create the directory
-		if err := os.MkdirAll(target, 0744); err != nil {
-			return fmt.Errorf("error creating directory %s: %w", target, err)
-		}
-		// Save the folder signature into the directory
-		if err := ioutil.WriteFile(signatureFile, signatureRaw, 0666); err != nil {
-			return fmt.Errorf("error writing %s: %w", signatureFile, err)
-		}
-	} else {
-		// Check the folder signature
-		var (
-			savedSignatureRaw []byte
-			savedSignature    models.Folder
-			err               error
-		)
-		if savedSignatureRaw, err = ioutil.ReadFile(signatureFile); err != nil {
-			return fmt.Errorf("error reading %s: %w", signatureFile, err)
-		}
-		if err = json.Unmarshal(savedSignatureRaw, &savedSignature); err != nil {
-			return fmt.Errorf("error unmarshal signature: %w", err)
-		}
-		if savedSignature != folder {
-			return fmt.Errorf("existing folder signature '%s' does not match", signatureFile)
-		}
+	if folderJSONRaw, err = ioutil.ReadFile(folderJSONPath); err != nil {
+		return false, fmt.Errorf("Unable to read %s: %w", folderJSONPath, err)
 	}
-	return nil
-}
-
-// makes a very unsafe directory name reasonable
-func sanitizeDirName(name string) string {
-	var (
-		sanitizeRegex *regexp.Regexp
-		dirName       string
-	)
-	sanitizeRegex, _ = regexp.Compile("[^A-Za-z0-9._-]")
-	dirName = strings.ToLower(name)
-	dirName = string(sanitizeRegex.ReplaceAll([]byte(dirName), []byte("_")))
-	return dirName
+	if err = json.Unmarshal(folderJSONRaw, &targetFolder); err != nil {
+		return false, fmt.Errorf("Unable to unmarshal the JSON in %s: %w", folderJSONPath, err)
+	}
+	return newFolder == targetFolder, nil
 }

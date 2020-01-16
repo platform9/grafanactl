@@ -16,12 +16,15 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/grafana-tools/sdk"
 	"github.com/grafana/grafana/pkg/models"
@@ -55,24 +58,56 @@ var downloadCmd = &cobra.Command{
 			)
 			gc = getGrafanaClientInternal()
 
-			// List all folders
+			// Prepare folder destinations
 			if folders, err = gc.GetAllFolders(); err != nil {
 				fmt.Fprintf(os.Stderr, fmt.Sprintf("error downloading folders: %s\n", err))
 				os.Exit(1)
 			}
-			for _, folder := range folders {
-				var (
-					dirName string
-					err     error
-				)
+			for _, fol := range folders {
+				// Sanitize the folder name
+				sanitizeRegex, _ := regexp.Compile("[^A-Za-z0-9._-]")
+				dirName := strings.ToLower(fol.Title)
+				dirName = string(sanitizeRegex.ReplaceAll([]byte(dirName), []byte("_")))
 				dirName = filepath.Join(viper.GetString("target"), dirName)
-				if err = mkdirFromFolder(folder); err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("error creating folder %s: %s", dirName, err))
-					fmt.Printf("Skipping download of folder '%s'", folder.Title)
+				signatureFile := filepath.Join(dirName, ".folder.json")
+
+				// Check if a folder already exists
+				exists, _ := os.Lstat(dirName)
+				if exists == nil {
+					// Attempt to create the directory
+					err := os.MkdirAll(dirName, 0744)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Error creating directory %s: %s\n", dirName, err)
+						continue
+					}
+					// Save the folder signature into the directory
+					var fileContents []byte
+					fileContents, err = json.Marshal(fol)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to marshal json: %v\nError: %s", fol, err))
+						continue
+					}
+					if err = ioutil.WriteFile(signatureFile, fileContents, 0666); err != nil {
+						fmt.Fprintf(os.Stderr, fmt.Sprintf("Error writing %s: %s\n", signatureFile, err))
+						continue
+					}
+					saveFolderDashboards(fol.Id, dirName)
+				} else {
+					// Read the .folder.json file and unmarshal it
+					var directoryIsFolder bool
+					if directoryIsFolder, err = isDirectoryMatch(fol, dirName); err != nil {
+						fmt.Fprintf(os.Stderr, "%s", err)
+						continue
+					}
+					if directoryIsFolder {
+						fmt.Printf("Existing directory '%s' matches the existing grafana folder '%s'. Overwriting.\n", dirName, fol.Title)
+						saveFolderDashboards(fol.Id, dirName)
+					} else {
+						fmt.Println("Folder signatures don't match")
+						fmt.Printf("The folder '%s' will be skipped\n", fol.Title)
+						// TODO: append the UID to the folder name and try again
+					}
 					continue
-				}
-				if err = saveFolderDashboards(folder.Id, dirName); err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("error saving dashboards for folder %s: %s", dirName, err))
 				}
 			}
 			// Download all of the dashboards in the "General" folder (always has ID of 0)

@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grafana-tools/sdk"
+	"github.com/grafana/grafana/pkg/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,66 +44,96 @@ Only files with a '.json' extension will be uploaded.`,
 			os.Exit(1)
 		}
 		var (
-			files    []os.FileInfo
-			rawBoard []byte
-			readErr  error
-			inDir    string
+			files   []os.FileInfo
+			readErr error
 		)
 		// Check if file is a Dir or a File
 		switch mode := targetFiles.Mode(); {
 		case mode.IsDir():
+			// Enumerate a list of files in the directory
 			files, readErr = ioutil.ReadDir(targetFiles.Name())
-			inDir = targetFiles.Name()
 			if readErr != nil {
 				fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", readErr))
 				os.Exit(1)
 			}
 		case mode.IsRegular():
+			// Enumerate a list of files with just this file
 			files = []os.FileInfo{targetFiles}
 		}
 
-		c := getGrafanaClient()
+		cint := getGrafanaClientInternal()
 
 		for _, file := range files {
-			// Skip directories
 			if file.Mode().IsDir() {
-				fmt.Printf("Skipping '%s' (Is a Directory)\n", file.Name())
-				continue
-			}
-
-			dashboardFile := file.Name()
-			// If using a directory, generate the relative path to the file
-			if len(inDir) > 0 {
-				dashboardFile = filepath.Join(inDir, file.Name())
-			}
-			fmt.Printf("uploading %s\n", dashboardFile)
-			if !strings.HasSuffix(dashboardFile, ".json") {
-				fmt.Printf("Skipping '%s' (Not a JSON file)\n", file.Name())
-				continue
-			}
-
-			if rawBoard, err = ioutil.ReadFile(dashboardFile); err != nil {
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to read file %s: %s\n", dashboardFile, err))
-				continue
-			}
-			var board sdk.Board
-			if err = json.Unmarshal(rawBoard, &board); err != nil {
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("Skipping file %s for error: %s\n", dashboardFile, err))
-				continue
-			}
-			c.DeleteDashboard(board.UpdateSlug())
-			msg, err := c.SetDashboard(board, false)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload dashboard %s:\n%s\n", dashboardFile, err))
-				continue
-			} else {
-				if msg.URL != nil && msg.Slug != nil {
-					link := fmt.Sprintf("%s%s", viper.GetString("url"), (*msg.URL))
-					fmt.Printf("Successfully Uploaded dashboard '%s'\nurl: %s\n", (*msg.Slug), link)
+				// Check if the folder has a signature
+				var (
+					dashboardDir   string
+					folderJSONPath string
+					folderJSONRaw  []byte
+					folderJSON     models.Folder
+					err            error
+				)
+				dashboardDir = filepath.Join(targetFiles.Name(), file.Name())
+				folderJSONPath = filepath.Join(dashboardDir, ".folder.json")
+				if _, err = os.Lstat(folderJSONPath); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Couldn't find .folder.json found for directory %s: %s\n", file.Name(), err))
+					continue
 				}
+				if folderJSONRaw, err = ioutil.ReadFile(folderJSONPath); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to read file: %s\nError: %s", folderJSONPath, err))
+					continue
+				}
+				if err = json.Unmarshal(folderJSONRaw, &folderJSON); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to unmarshal file: %v\nError: %s", folderJSONRaw, err))
+					continue
+				}
+
+				fmt.Printf("'%s' Is a Directory\n", file.Name())
+				cint.SetFolder(folderJSON)
+				files, readErr = ioutil.ReadDir(filepath.Join(targetFiles.Name(), file.Name()))
+				if readErr != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", readErr))
+				}
+				uploadFiles(files, dashboardDir, int(folderJSON.Id), true)
+				continue
 			}
+			uploadFiles([]os.FileInfo{file}, targetFiles.Name(), 0, true)
 		}
 	},
+}
+
+func uploadFiles(files []os.FileInfo, basePath string, targetFolderID int, overwrite bool) error {
+	cint := getGrafanaClientInternal()
+	for _, file := range files {
+		if file.Mode().IsDir() {
+			return fmt.Errorf("uploadFiles will not upload directories")
+		}
+
+		var (
+			rawBoard []byte
+			err      error
+		)
+
+		dashboardFile := filepath.Join(basePath, file.Name())
+		if !strings.HasSuffix(dashboardFile, ".json") {
+			fmt.Printf("Skipping '%s' (Not a JSON file)\n", file.Name())
+			continue
+		}
+
+		if rawBoard, err = ioutil.ReadFile(dashboardFile); err != nil {
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to read file %s: %s\n", dashboardFile, err))
+			continue
+		}
+
+		// Replace the dashboard
+		fmt.Printf("uploading %s\n", dashboardFile)
+		if err = cint.SetDashboard(rawBoard, overwrite, targetFolderID); err != nil {
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload dashboard %s:\n%s\n", dashboardFile, err))
+			continue
+		}
+		fmt.Printf("upload complete!")
+	}
+	return nil
 }
 
 func init() {
