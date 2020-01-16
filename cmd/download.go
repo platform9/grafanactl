@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 Platform9 Systems
+Copyright © 2020 Platform9 Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,15 +16,12 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/grafana-tools/sdk"
 	"github.com/grafana/grafana/pkg/models"
@@ -58,68 +55,24 @@ var downloadCmd = &cobra.Command{
 			)
 			gc = getGrafanaClientInternal()
 
-			// Prepare folder destinations
+			// List all folders
 			if folders, err = gc.GetAllFolders(); err != nil {
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("Error downloading folders: %s\n", err))
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("error downloading folders: %s\n", err))
 				os.Exit(1)
 			}
-			for _, fol := range folders {
-				// Sanitize the folder name
-				sanitizeRegex, _ := regexp.Compile("[^A-Za-z0-9._-]")
-				dirName := strings.ToLower(fol.Title)
-				dirName = string(sanitizeRegex.ReplaceAll([]byte(dirName), []byte("_")))
+			for _, folder := range folders {
+				var (
+					dirName string
+					err     error
+				)
 				dirName = filepath.Join(viper.GetString("target"), dirName)
-				signatureFile := filepath.Join(dirName, ".folder.json")
-
-				// Check if a folder already exists
-				exists, _ := os.Lstat(dirName)
-				if exists == nil {
-					// Attempt to create the directory
-					err := os.MkdirAll(dirName, 0744)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Error creating directory %s: %s\n", dirName, err)
-						continue
-					}
-					// Save the folder signature into the directory
-					var fileContents []byte
-					fileContents, err = json.Marshal(fol)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to marshal json: %v\nError: %s", fol, err))
-						continue
-					}
-					if err = ioutil.WriteFile(signatureFile, fileContents, 0666); err != nil {
-						fmt.Fprintf(os.Stderr, fmt.Sprintf("Error writing %s: %s\n", signatureFile, err))
-						continue
-					}
-					saveFolderDashboards(fol.Id, dirName)
-				} else {
-					// Read the .folder.json file and unmarshal it
-					var contents []byte
-					var targetFolder models.Folder
-					if contents, err = ioutil.ReadFile(signatureFile); err != nil {
-						fmt.Fprintf(os.Stderr, fmt.Sprintf("Error reading %s: %s\n", signatureFile, err))
-						continue
-					}
-					if err = json.Unmarshal(contents, &targetFolder); err != nil {
-						fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to unmarshal file: %v\nError: %s", contents, err))
-						continue
-					}
-					if targetFolder == fol {
-						fmt.Printf("Existing directory '%s' matches the existing grafana folder '%s'. Overwriting.\n", dirName, fol.Title)
-						// Reuse the folder
-						saveFolderDashboards(fol.Id, dirName)
-					} else {
-						fmt.Println("Folder signatures don't match")
-						newFolderJSON, err := json.MarshalIndent(fol, "", "  ")
-						tarFolderJSON, err := json.MarshalIndent(targetFolder, "", "  ")
-						if err != nil {
-							fmt.Fprintf(os.Stderr, fmt.Sprintf("Failed to unmarshal JSON: %s\n", err))
-							continue
-						}
-						fmt.Printf("Target Folder Signature: %s\nDownloaded Folder Signature: %s\n", tarFolderJSON, newFolderJSON)
-						fmt.Printf("The folder '%s' will be skipped\n", fol.Title)
-					}
+				if err = mkdirFromFolder(folder); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("error creating folder %s: %s", dirName, err))
+					fmt.Printf("Skipping download of folder '%s'", folder.Title)
 					continue
+				}
+				if err = saveFolderDashboards(folder.Id, dirName); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("error saving dashboards for folder %s: %s", dirName, err))
 				}
 			}
 			// Download all of the dashboards in the "General" folder (always has ID of 0)
@@ -130,47 +83,44 @@ var downloadCmd = &cobra.Command{
 
 // saveFolderDashboards will download all of the dashboards to the target dir
 // It's expected that a folder with this ID and the target dir already exist
-func saveFolderDashboards(folderID int64, targetDir string) {
+func saveFolderDashboards(folderID int64, targetDir string) error {
 	var (
-		query    url.Values
-		results  []models.SearchHit
-		rawBoard []byte
-		meta     sdk.BoardProperties
-		err      error
-		client   *sdk.Client
+		query     url.Values
+		results   []models.SearchHit
+		rawBoard  []byte
+		meta      sdk.BoardProperties
+		err       error
+		client    *sdk.Client
+		folderIDs string
 	)
-	folderIDString := strconv.FormatInt(folderID, 10)
+	folderIDs = strconv.FormatInt(folderID, 10)
 	client = getGrafanaClient()
 	c := getGrafanaClientInternal()
 	query = url.Values{}
-	query.Add("folderIds", folderIDString)
-	results, err = c.SearchDashboards(query)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, fmt.Sprintf("Failed to download dashboards for folder %s: %s\n", folderIDString, err))
-		return
+	query.Add("folderIds", folderIDs)
+	if results, err = c.SearchDashboards(query); err != nil {
+		return fmt.Errorf("error searching dashboards in folder %s: %w", folderIDs, err)
 	}
 	for _, board := range results {
 		// Download the dashboard
 		if rawBoard, meta, err = client.GetRawDashboard(board.Uri); err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("Error downloading: %s for %s\n", err, board.Uri))
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("error downloading dashboard %s: %s\n", board.Uri, err))
 			continue
 		}
 		// Write the dashboard to file
 		path := filepath.Join(targetDir, fmt.Sprintf("%s.json", meta.Slug))
 		if err = ioutil.WriteFile(path, rawBoard, 0666); err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("Error writing: %s\n", err))
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("error writing: %s\n", err))
 			continue
 		}
 		fmt.Printf("Downloaded %s\n", path)
 	}
+	return nil
 }
 
 func init() {
 	dashboardCmd.AddCommand(downloadCmd)
-
 	downloadCmd.Flags().BoolP("all", "a", false, "Download all dashboards")
-	viper.BindPFlag("all", downloadCmd.Flags().Lookup("all"))
-
 	downloadCmd.Flags().StringP("target", "t", ".", "Target directory to save dashboard files.")
-	viper.BindPFlag("target", downloadCmd.Flags().Lookup("target"))
+	viper.BindPFlags(downloadCmd.Flags())
 }
