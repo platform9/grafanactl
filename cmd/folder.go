@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/grafana/grafana/pkg/models"
+	"github.com/platform9/grafana-sync/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -38,12 +38,12 @@ func init() {
 }
 
 // isDirectoryMatch inspects a target directory to see if it matches the current grafana folder
-func isDirectoryMatch(newFolder models.Folder, targetDirectory string) (bool, error) {
+func isDirectoryMatch(newFolder client.GrafanaFolder, targetDirectory string) (bool, error) {
 	var (
 		folderJSONPath string
 		folderJSONRaw  []byte
 		exists         os.FileInfo
-		targetFolder   models.Folder
+		targetFolder   client.GrafanaFolder
 		err            error
 	)
 	folderJSONPath = filepath.Join(targetDirectory, ".folder.json")

@@ -26,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/grafana/pkg/models"
 	"github.com/platform9/grafana-sync/pkg/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,7 +50,7 @@ var downloadCmd = &cobra.Command{
 			}
 		} else {
 			var (
-				folders []models.Folder
+				folders []client.GrafanaFolder
 				err     error
 				c       *client.Client
 			)
@@ -90,7 +89,7 @@ var downloadCmd = &cobra.Command{
 						fmt.Fprintf(os.Stderr, fmt.Sprintf("Error writing %s: %s\n", signatureFile, err))
 						continue
 					}
-					saveFolderDashboards(fol.Id, dirName)
+					saveFolderDashboards(fol.ID, dirName)
 				} else {
 					// Read the .folder.json file and unmarshal it
 					var directoryIsFolder bool
@@ -100,7 +99,7 @@ var downloadCmd = &cobra.Command{
 					}
 					if directoryIsFolder {
 						fmt.Printf("Existing directory '%s' matches the existing grafana folder '%s'. Overwriting.\n", dirName, fol.Title)
-						saveFolderDashboards(fol.Id, dirName)
+						saveFolderDashboards(fol.ID, dirName)
 					} else {
 						fmt.Println("Folder signatures don't match")
 						fmt.Printf("The folder '%s' will be skipped\n", fol.Title)

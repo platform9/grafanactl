@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grafana/grafana/pkg/models"
+	"github.com/platform9/grafana-sync/pkg/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -70,8 +70,9 @@ Only files with a '.json' extension will be uploaded.`,
 					dashboardDir   string
 					folderJSONPath string
 					folderJSONRaw  []byte
-					folderJSON     models.Folder
+					folderJSON     client.GrafanaFolder
 					err            error
+					folder         client.GrafanaFolder
 				)
 				dashboardDir = filepath.Join(targetFiles.Name(), file.Name())
 				folderJSONPath = filepath.Join(dashboardDir, ".folder.json")
@@ -88,12 +89,16 @@ Only files with a '.json' extension will be uploaded.`,
 					continue
 				}
 
-				c.SetFolder(folderJSON)
+				// Use the folder as returned by create/update to get the correct ID
+				if folder, err = c.SetFolder(folderJSON); err != nil {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", err))
+					continue
+				}
 				files, readErr = ioutil.ReadDir(filepath.Join(targetFiles.Name(), file.Name()))
 				if readErr != nil {
 					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", readErr))
 				}
-				uploadFiles(files, dashboardDir, int(folderJSON.Id), viper.GetBool("overwrite"))
+				uploadFiles(files, dashboardDir, int(folder.ID), viper.GetBool("overwrite"))
 				continue
 			}
 			uploadFiles([]os.FileInfo{file}, targetFiles.Name(), 0, viper.GetBool("overwrite"))
@@ -126,7 +131,7 @@ func uploadFiles(files []os.FileInfo, basePath string, targetFolderID int, overw
 
 		// Replace the dashboard
 		if err = c.SetDashboard(rawBoard, overwrite, targetFolderID); err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload %s:\n%s\n", dashboardFile, err))
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload %s: %s\n", dashboardFile, err))
 			continue
 		}
 	}
