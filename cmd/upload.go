@@ -91,7 +91,11 @@ Only files with a '.json' extension will be uploaded.`,
 
 				// Use the folder as returned by create/update to get the correct ID
 				if folder, err = c.SetFolder(folderJSON); err != nil {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", err))
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error setting folder '%s': %s\n", folderJSON.Title, err))
+					continue
+				}
+				if folder.ID == 0 {
+					fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to resolve the real folder ID. Skipping folder '%s'", folderJSON.Title))
 					continue
 				}
 				files, readErr = ioutil.ReadDir(filepath.Join(targetFiles.Name(), file.Name()))

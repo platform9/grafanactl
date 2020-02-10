@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/grafana/grafana/pkg/models"
@@ -150,12 +149,10 @@ func (r *Client) updateFolder(uid string, title string, version int, overwrite b
 	}
 	if code == 412 {
 		// unpack the response and provide the message back to the user
-		dec := json.NewDecoder(bytes.NewReader(raw))
-		dec.UseNumber()
-		if err := dec.Decode(&failMsg); err != nil {
+		if err := json.Unmarshal(raw, &failMsg); err != nil {
 			return GrafanaFolder{}, fmt.Errorf("Received HTTP 412 but was unable to understand server message: %w", err)
 		}
-		fmt.Fprintf(os.Stderr, "Error updating %s: %s: %s\n", uid, failMsg.Status, failMsg.Message)
+		return GrafanaFolder{}, fmt.Errorf(fmt.Sprintf("%s: %s\n", failMsg.Status, failMsg.Message))
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
