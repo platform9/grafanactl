@@ -88,16 +88,15 @@ Only files with a '.json' extension will be uploaded.`,
 					continue
 				}
 
-				fmt.Printf("'%s' Is a Directory\n", file.Name())
 				cint.SetFolder(folderJSON)
 				files, readErr = ioutil.ReadDir(filepath.Join(targetFiles.Name(), file.Name()))
 				if readErr != nil {
 					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", readErr))
 				}
-				uploadFiles(files, dashboardDir, int(folderJSON.Id), true)
+				uploadFiles(files, dashboardDir, int(folderJSON.Id), viper.GetBool("overwrite"))
 				continue
 			}
-			uploadFiles([]os.FileInfo{file}, targetFiles.Name(), 0, true)
+			uploadFiles([]os.FileInfo{file}, targetFiles.Name(), 0, viper.GetBool("overwrite"))
 		}
 	},
 }
@@ -126,7 +125,6 @@ func uploadFiles(files []os.FileInfo, basePath string, targetFolderID int, overw
 		}
 
 		// Replace the dashboard
-		fmt.Printf("uploading %s\n", dashboardFile)
 		if err = cint.SetDashboard(rawBoard, overwrite, targetFolderID); err != nil {
 			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload dashboard %s:\n%s\n", dashboardFile, err))
 			continue
@@ -141,5 +139,6 @@ func init() {
 
 	uploadCmd.Flags().StringP(
 		"files", "f", ".", "Target file or directory of dashboard files to upload.")
-	viper.BindPFlag("files", uploadCmd.Flags().Lookup("files"))
+	uploadCmd.Flags().Bool("overwrite", false, "Overwrite existing dashboard with newer version, same dashboard title in folder, or same dashboard UID.")
+	viper.BindPFlags(uploadCmd.Flags())
 }

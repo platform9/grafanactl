@@ -137,7 +137,7 @@ func (r *Client) SetDashboard(dash []byte, overwrite bool, folderID int) error {
 	if code == 412 {
 		var badthings PreconditionFailedMsg
 		json.Unmarshal(raw, &badthings)
-		return fmt.Errorf("error updating dashboard: %s\n%s, %w", badthings.Status, badthings.Message, err)
+		return fmt.Errorf("%s: %s", badthings.Status, badthings.Message)
 	} else if code != 200 {
 		// attempt to unmarshal the raw payload and display the error
 		var (
