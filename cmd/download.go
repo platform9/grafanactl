@@ -53,12 +53,12 @@ var downloadCmd = &cobra.Command{
 			var (
 				folders []models.Folder
 				err     error
-				gc      *client.Client
+				c       *client.Client
 			)
-			gc = getGrafanaClientInternal()
+			c = getGrafanaClient()
 
 			// Prepare folder destinations
-			if folders, err = gc.GetAllFolders(); err != nil {
+			if folders, err = c.GetAllFolders(); err != nil {
 				fmt.Fprintf(os.Stderr, fmt.Sprintf("error downloading folders: %s\n", err))
 				os.Exit(1)
 			}
@@ -127,7 +127,7 @@ func saveFolderDashboards(folderID int64, targetDir string) error {
 		folderIDs string
 	)
 	folderIDs = strconv.FormatInt(folderID, 10)
-	c := getGrafanaClientInternal()
+	c := getGrafanaClient()
 	query = url.Values{}
 	query.Add("folderIds", folderIDs)
 	if results, err = c.SearchDashboards(query); err != nil {

@@ -29,7 +29,7 @@ var searchDashboardCmd = &cobra.Command{
 	Long:  `Search for Dashboards`,
 	Run: func(cmd *cobra.Command, args []string) {
 		requireAuthParams()
-		c := getGrafanaClientInternal()
+		c := getGrafanaClient()
 		queryParams := getSearchParams(cmd, args)
 		results, _ := c.SearchDashboards(queryParams)
 		if len(results) == 0 {
