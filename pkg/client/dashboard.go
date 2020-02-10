@@ -118,21 +118,24 @@ func (r *Client) SetDashboard(dash []byte, overwrite bool, folderID int) error {
 
 	// check if the dashboard already exists
 	existingDashboard, _ = r.GetDashboard(dashUID)
-	if (GrafanaDashboardFullWithMeta{}) == existingDashboard {
-		fmt.Printf("Dashboard does not exist, creating it as a new dashboard")
-		// strip the ID so a new dashboard will be created
-		delete(dashboardContents, "id")
-	} else {
+	if (GrafanaDashboardFullWithMeta{}) != existingDashboard {
 		// unmarshal the map into []bytes, then marshal back into map[string]interface{}
 		// this replicates the process of saving to file, and re-loading the data
 		existingDashRaw, _ = existingDashboard.Dashboard.MarshalJSON()
 		_ = json.Unmarshal(existingDashRaw, &existingDashMap)
 		// compare the two dashboards, we won't submit if it's a no-op update
-		if reflect.DeepEqual(existingDashMap, dashboardContents) {
+		// don't compare the ID, it doesn't need to match
+		upstreamCompareDash := existingDashMap
+		dnstreamCompareDash := dashboardContents
+		delete(upstreamCompareDash, "id")
+		delete(dnstreamCompareDash, "id")
+		if reflect.DeepEqual(upstreamCompareDash, dnstreamCompareDash) {
 			fmt.Printf("No changes were made to the dashboard. Not updating\n")
 			return nil
 		}
 	}
+
+	// resolve the correct folder ID - it may not match
 
 	// construct a valid payload out of the dashboard, folderID, and overwrite flag
 	req = DashboardUploadRequest{
