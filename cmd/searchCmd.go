@@ -21,17 +21,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/grafana/pkg/models"
 	"github.com/olekukonko/tablewriter"
+	"github.com/platform9/grafana-sync/pkg/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func prepareTable(searchResults []models.SearchHit) *tablewriter.Table {
+func prepareTable(searchResults []client.GrafanaSearchHit) *tablewriter.Table {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Id", "Title", "Tags", "isStarred"})
 	for _, hit := range searchResults {
-		id := strconv.FormatUint(uint64(hit.Id), 10)
+		id := strconv.FormatUint(uint64(hit.ID), 10)
 		isStarred := strconv.FormatBool(hit.IsStarred)
 		tags := strings.Join(hit.Tags, ", ")
 		table.Append([]string{id, hit.Title, tags, isStarred})

@@ -26,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana-tools/sdk"
 	"github.com/grafana/grafana/pkg/models"
 	"github.com/platform9/grafana-sync/pkg/client"
 	"github.com/spf13/cobra"
@@ -121,15 +120,13 @@ var downloadCmd = &cobra.Command{
 func saveFolderDashboards(folderID int64, targetDir string) error {
 	var (
 		query     url.Values
-		results   []models.SearchHit
+		results   []client.GrafanaSearchHit
 		rawBoard  []byte
-		meta      sdk.BoardProperties
+		dash      client.GrafanaDashboardFullWithMeta
 		err       error
-		client    *sdk.Client
 		folderIDs string
 	)
 	folderIDs = strconv.FormatInt(folderID, 10)
-	client = getGrafanaClient()
 	c := getGrafanaClientInternal()
 	query = url.Values{}
 	query.Add("folderIds", folderIDs)
@@ -138,12 +135,13 @@ func saveFolderDashboards(folderID int64, targetDir string) error {
 	}
 	for _, board := range results {
 		// Download the dashboard
-		if rawBoard, meta, err = client.GetRawDashboard(board.Uri); err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("error downloading dashboard %s: %s\n", board.Uri, err))
+		if dash, err = c.GetDashboard(board.UID); err != nil {
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("error downloading dashboard %s: %s\n", board.UID, err))
 			continue
 		}
+		rawBoard, _ = dash.Dashboard.Encode()
 		// Write the dashboard to file
-		path := filepath.Join(targetDir, fmt.Sprintf("%s.json", meta.Slug))
+		path := filepath.Join(targetDir, fmt.Sprintf("%s.json", dash.Meta.Slug))
 		if err = ioutil.WriteFile(path, rawBoard, 0666); err != nil {
 			fmt.Fprintf(os.Stderr, fmt.Sprintf("error writing: %s\n", err))
 			continue
