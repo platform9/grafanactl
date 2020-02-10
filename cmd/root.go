@@ -22,7 +22,6 @@ import (
 	"github.com/platform9/grafana-sync/pkg/client"
 	"github.com/spf13/cobra"
 
-	"github.com/grafana-tools/sdk"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
@@ -115,11 +114,6 @@ func requireAuthParams() {
 	}
 }
 
-// Initializes a grafana client for the user
-func getGrafanaClient() *sdk.Client {
-	return sdk.NewClient(viper.GetString("url"), viper.GetString("apikey"), sdk.DefaultHTTPClient)
-}
-
-func getGrafanaClientInternal() *client.Client {
+func getGrafanaClient() *client.Client {
 	return client.NewClient(viper.GetString("url"), viper.GetString("apikey"), client.DefaultHTTPClient)
 }

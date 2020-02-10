@@ -7,7 +7,6 @@ require (
 	github.com/go-macaron/session v0.0.0-20191101041208-c5d57a35f512 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gosimple/slug v1.9.0 // indirect
-	github.com/grafana-tools/sdk v0.0.0-20191214173017-690a0c6bec7b
 	github.com/grafana/grafana v6.1.6+incompatible
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect

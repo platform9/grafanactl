@@ -61,7 +61,7 @@ Only files with a '.json' extension will be uploaded.`,
 			files = []os.FileInfo{targetFiles}
 		}
 
-		cint := getGrafanaClientInternal()
+		c := getGrafanaClient()
 
 		for _, file := range files {
 			if file.Mode().IsDir() {
@@ -88,7 +88,7 @@ Only files with a '.json' extension will be uploaded.`,
 					continue
 				}
 
-				cint.SetFolder(folderJSON)
+				c.SetFolder(folderJSON)
 				files, readErr = ioutil.ReadDir(filepath.Join(targetFiles.Name(), file.Name()))
 				if readErr != nil {
 					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error: %s\n", readErr))
@@ -102,7 +102,7 @@ Only files with a '.json' extension will be uploaded.`,
 }
 
 func uploadFiles(files []os.FileInfo, basePath string, targetFolderID int, overwrite bool) error {
-	cint := getGrafanaClientInternal()
+	c := getGrafanaClient()
 	for _, file := range files {
 		if file.Mode().IsDir() {
 			return fmt.Errorf("uploadFiles will not upload directories")
@@ -125,7 +125,7 @@ func uploadFiles(files []os.FileInfo, basePath string, targetFolderID int, overw
 		}
 
 		// Replace the dashboard
-		if err = cint.SetDashboard(rawBoard, overwrite, targetFolderID); err != nil {
+		if err = c.SetDashboard(rawBoard, overwrite, targetFolderID); err != nil {
 			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload %s:\n%s\n", dashboardFile, err))
 			continue
 		}
