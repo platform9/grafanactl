@@ -126,10 +126,9 @@ func uploadFiles(files []os.FileInfo, basePath string, targetFolderID int, overw
 
 		// Replace the dashboard
 		if err = cint.SetDashboard(rawBoard, overwrite, targetFolderID); err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload dashboard %s:\n%s\n", dashboardFile, err))
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("Unable to upload %s:\n%s\n", dashboardFile, err))
 			continue
 		}
-		fmt.Printf("upload complete!")
 	}
 	return nil
 }

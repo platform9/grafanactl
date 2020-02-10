@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
@@ -98,10 +99,11 @@ func (r *Client) SetDashboard(dash []byte, overwrite bool, folderID int) error {
 		dashTitle         string
 		dashUID           string
 		existingDashboard GrafanaDashboardFullWithMeta
+		existingDashRaw   []byte
+		existingDashMap   map[string]interface{}
 	)
 
-	// construct a valid payload out of the dashboard, folderID, and overwrite flag
-	// unmarshal then unmarshal the json to serialize the correct payload
+	// Pull some info from the dashboard spec
 	// To avoid creating a very complex dashboard struct, we'll use a generic interface
 	var dashboardContents map[string]interface{}
 	_ = json.Unmarshal(dash, &dashboardContents)
@@ -109,20 +111,30 @@ func (r *Client) SetDashboard(dash []byte, overwrite bool, folderID int) error {
 	dashTitle = fmt.Sprintf("%v", dashboardContents["title"])
 	dashUID = fmt.Sprintf("%v", dashboardContents["uid"])
 
+	// crude check for a valid dashboard
 	if dashboardContents["panels"] == nil {
-		return fmt.Errorf("not a dashboard")
+		return fmt.Errorf("Not a dashboard")
 	}
 
-	// check if a dashboard already exists
+	// check if the dashboard already exists
 	existingDashboard, _ = r.GetDashboard(dashUID)
 	if (GrafanaDashboardFullWithMeta{}) == existingDashboard {
-		// assume dashboard exists
-		fmt.Printf("Dashboard exists already, creating it as a new dashboard")
+		fmt.Printf("Dashboard does not exist, creating it as a new dashboard")
 		// strip the ID so a new dashboard will be created
 		delete(dashboardContents, "id")
+	} else {
+		// unmarshal the map into []bytes, then marshal back into map[string]interface{}
+		// this replicates the process of saving to file, and re-loading the data
+		existingDashRaw, _ = existingDashboard.Dashboard.MarshalJSON()
+		_ = json.Unmarshal(existingDashRaw, &existingDashMap)
+		// compare the two dashboards, we won't submit if it's a no-op update
+		if reflect.DeepEqual(existingDashMap, dashboardContents) {
+			fmt.Printf("No changes were made to the dashboard. Not updating\n")
+			return nil
+		}
 	}
 
-	// construct the request body
+	// construct a valid payload out of the dashboard, folderID, and overwrite flag
 	req = DashboardUploadRequest{
 		Dashboard: dashboardContents,
 		FolderID:  folderID,
