@@ -1,0 +1,12 @@
+language: go
+go:
+- 1.13
+deploy:
+  provider: releases
+  api_key:
+    secure: PVzIwIbphjY8p4pqONM9WRs8EI0WIx0sFH5GsKLLpHKEtaNVG3ikojzCZTCl1KD2VR89LlGmpHQgN0VFq8XWNhHg18gwWR6e4O8Hg7hcgblt1trVFx3cHJNS8jrMKnhr/sTqzDlxPHKskYd5xFI/SZTIXldC0xaO7KIj6r/Gx1UGT10MC4UJRbnfHVSOghYbZT47Ou26y/GID5S280v+m3wb4hACr3a+3cuIJmHgd1Sk3zYg2AvHDy87wTAqO4zGxCITuZAQ+4Bh4SqCxJT/8sd73b1ZOQqXuRQ3a9I8s3EgPp5I+kyc0XkyYeKoEXqg/k+FTdqgTJNN85MG4aVTvxtHO4LMeHiGvlhB605feO/a0JUZPXCwNdXvN34/r5g6uN/G8ue4iGeuizjNiDdqeKtLLMGqpRn6gLJ4mDWIvcqLO3iNt4IytEBUlDaeNMM7WOSCQ2GWs4YCn3FLRZFUuJ/hDbvkbLk1vt1DKvqvlOV3j93DIqqSPk1HSFLy2mbp+2HKaTgw/W6soM8+uz0XNce8pepIDqD+esyYin44r5OMk1jMSCWTNIqh+hMM+H75O8AlRVPdcMeL1DBW55OYJxaFLdkpFzrnW3c5tIdv79bhDM1staghL9MWSBCImq+mrPz1/aWzov0YcVk/edPRtIK5ja9JFG0NUrxf2UScTVY=
+  file: grafanactl
+  skip_cleanup: true
+  on:
+    repo: platform9/grafanactl
+    tags: true
