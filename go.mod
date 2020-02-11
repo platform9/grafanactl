@@ -1,4 +1,4 @@
-module github.com/platform9/grafana-sync
+module github.com/platform9/grafanactl
 
 go 1.13
 

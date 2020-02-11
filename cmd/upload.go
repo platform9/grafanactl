@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/platform9/grafana-sync/pkg/client"
+	"github.com/platform9/grafanactl/pkg/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/platform9/grafana-sync/cmd"
+import "github.com/platform9/grafanactl/cmd"
 
 func main() {
 	cmd.Execute()
