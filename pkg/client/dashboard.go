@@ -128,11 +128,16 @@ func (r *Client) SetDashboard(dash []byte, overwrite bool, folderID int) error {
 		upstreamCompareDash := existingDashMap
 		dnstreamCompareDash := dashboardContents
 		delete(upstreamCompareDash, "id")
+		delete(upstreamCompareDash, "version")
 		delete(dnstreamCompareDash, "id")
+		delete(dnstreamCompareDash, "version")
 		if reflect.DeepEqual(upstreamCompareDash, dnstreamCompareDash) {
 			fmt.Printf("No changes were made to the dashboard. Not updating\n")
 			return nil
 		}
+	} else {
+		// dashboard was not found. set ID to null to create new dashboard
+		dashboardContents["id"] = nil
 	}
 
 	// resolve the correct folder ID - it may not match
