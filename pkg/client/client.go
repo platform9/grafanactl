@@ -74,7 +74,7 @@ func (r *Client) doRequest(method, query string, params url.Values, buf io.Reade
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "grafana-client")
+	req.Header.Set("User-Agent", "platform9-grafanactl")
 	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, 0, err

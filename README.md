@@ -1,11 +1,16 @@
-# Grafana Sync
+# Grafanactl
 
-Grafana Sync is a tool that enables replication of dashboards across
-multiple grafana instances, or organizations.
+Grafanactl is yet another CLI utility to interact with Grafana's APIs.
 
-You can download dashboards for a specific org, or folder.
+This specific tool was created for the purpose of syncing hand-crafted dashboards across multiple grafana instances, or organizations.
 
-You can upload dashboards to a specific org, preserving folder structure.
+This tool is inspired by, and overlaps heavily in functionality with the following:
+
+- [overdrive3000/grafanactl](https://github.com/overdrive3000/grafanactl)
+- [retzkek/grafanactl](https://github.com/retzkek/grafanactl)
+- [grafana-tools/sdk](https://github.com/grafana-tools/sdk)
+
+While it was desirable to set this apart from the others with a unique name, `grafanactl` succinctly describes the abilities of this tool, as paralleled by the use of `<tool>ctl` in many other projects.
 
 ## Usage
 
@@ -13,30 +18,30 @@ Current Command List
 
 ```bash
 # Listing Dashboards
-grafana-sync dashboard search
+grafanactl dashboard search
 
 # Downloading dashboards
-grafana-sync dashboard download --all
-grafana-sync dashboard download --all -t dashboards
+grafanactl dashboard download --all
+grafanactl dashboard download --all -t dashboards
 
 # Uploading dashboards
-grafana-sync dashboard upload -f dashboards
+grafanactl dashboard upload -f dashboards
 
 # List folders
-grafana-sync folder search
+grafanactl folder search
 ```
 
 ## Configuration
 
-Grafana supports a configuration file with the same input parameters as flags.
+Grafanactl supports a configuration file with the same input parameters as flags.
 
 Multiple definitions of the same configuration item will overwrite each other.
 The following is the order of precedence for config locations.
 
 1. Flags set at runtime
 2. Environment Variables
-3. .grafana-sync.yaml (current working dir)
-4. $HOME/.grafana-sync.yaml
+3. .grafanactl.yaml (current working dir)
+4. $HOME/.grafanactl.yaml
 
 It's important to note that any configuration option can be set via any method.
 
@@ -58,9 +63,9 @@ Environment variables should be set with a `GS_` prefix. This is to avoid collis
 Example:
 
 ```bash
-# grafana-sync.rc
-export GS_APIKEY=DEFINITELYNOTYOURAPIKEY
-export GS_URL=https://grafana.your.domain
+# grafanactl.rc
+export GRAFANA_APIKEY=DEFINITELYNOTYOURAPIKEY
+export GRAFANA_URL=https://grafana.your.domain
 ```
 
 ### Flags
@@ -70,11 +75,11 @@ All flags can be discovered using --help on any of the subcommands.
 Example:
 
 ```bash
-# grafana-sync dashboard download --help
+# grafanactl dashboard download --help
 Download dashboards from a grafana instance
 
 Usage:
-  grafana-sync dashboard download [flags]
+  grafanactl dashboard download [flags]
 
 Flags:
   -a, --all             Download all dashboards
@@ -84,7 +89,7 @@ Flags:
 Global Flags:
       --apikey string   A Grafana API Key
       --config string   config file - default in order of precedence:
-                        - .grafana-sync.yaml
-                        - $HOME/.grafana-sync.yaml
+                        - .grafanactl.yaml
+                        - $HOME/.grafanactl.yaml
       --url string      The URL of a Grafana instance
 ```

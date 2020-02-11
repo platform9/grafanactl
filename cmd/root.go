@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/platform9/grafana-sync/pkg/client"
+	"github.com/platform9/grafanactl/pkg/client"
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -30,9 +30,9 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "grafana-sync",
+	Use:   "grafanactl",
 	Short: "Sync dashboards across grafana organizations",
-	Long: `Grafana Sync is a tool that enables replication of dashboards across
+	Long: `Grafanactl is a tool that enables replication of dashboards across
 multiple grafana instances, or organizations.
 
 You can download dashboards for a specific org, or folder.
@@ -53,8 +53,8 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", `config file - default in order of precedence:
-- .grafana-sync.yaml
-- $HOME/.grafana-sync.yaml`)
+- .grafanactl.yaml
+- $HOME/.grafanactl.yaml`)
 
 	// These flags will override the config file if specified
 	// `apiKey` command option for grafana API key
@@ -78,7 +78,7 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		viper.SetConfigName(".grafana-sync.yaml")
+		viper.SetConfigName(".grafanactl.yaml")
 		// First look in local directory
 		viper.AddConfigPath(".")
 		// Also look in HOME directory
@@ -86,8 +86,8 @@ func initConfig() {
 	}
 
 	// Environment Variables expect to be the uppercase form of the flag name
-	// env vars must be in the form GS_VARNAME
-	viper.SetEnvPrefix("GS")
+	// env vars must be in the form GRAFANA_VARNAME
+	viper.SetEnvPrefix("GRAFANA")
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
