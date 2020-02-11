@@ -80,7 +80,7 @@ func (r *Client) GetFolder(uid string) (GrafanaFolder, error) {
 // If a folder with the same UID exists, it will be updated
 // If UID is omitted, a new folder will be created.
 // If the folder does not exist, it will be created.
-func (r *Client) SetFolder(folder GrafanaFolder) (GrafanaFolder, error) {
+func (r *Client) SetFolder(folder GrafanaFolder, overwrite bool) (GrafanaFolder, error) {
 	var (
 		fo  GrafanaFolder
 		err error
@@ -96,7 +96,13 @@ func (r *Client) SetFolder(folder GrafanaFolder) (GrafanaFolder, error) {
 		return r.createFolder(folder.UID, folder.Title)
 	}
 
-	return r.updateFolder(folder.UID, folder.Title, folder.Version, false)
+	// check that we actually need to update something
+	if fo.Title != folder.Title {
+		return r.updateFolder(folder.UID, folder.Title, folder.Version, overwrite)
+	}
+
+	// return the upstream folder, it has the correct folderId
+	return fo, nil
 }
 
 func (r *Client) createFolder(uid string, title string) (GrafanaFolder, error) {

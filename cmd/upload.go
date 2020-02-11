@@ -90,7 +90,7 @@ Only files with a '.json' extension will be uploaded.`,
 				}
 
 				// Use the folder as returned by create/update to get the correct ID
-				if folder, err = c.SetFolder(folderJSON); err != nil {
+				if folder, err = c.SetFolder(folderJSON, viper.GetBool("overwrite")); err != nil {
 					fmt.Fprintf(os.Stderr, fmt.Sprintf("Error setting folder '%s': %s\n", folderJSON.Title, err))
 					continue
 				}
